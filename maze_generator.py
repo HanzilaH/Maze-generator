@@ -20,6 +20,9 @@ rectangles = []
 stack = []
 current_cell = None
 current_cell_index = 8+8*16
+prev = 0
+
+backtracking = False
 
 
 dir = -1
@@ -111,19 +114,22 @@ class Cell:
         pygame.draw.line(screen, 'lightblue',( self.x_coord+RECT_WIDTH, self.y_coord),( self.x_coord+RECT_WIDTH, self.y_coord+RECT_WIDTH), self.rigth_line)
 
 
-    def update(self, dir, prev):
-        if dir == 0:
-            self.left_line = 0
-            prev.right_line = 0
-        elif dir == 1:
-            self.top_line = 0
-            prev.bottom_line = 0
-        elif dir == 2:
-            self.bottom_line = 0
-            prev.top_line = 0
-        else:
-            self.right_line = 0
-            prev.left_line = 0
+    def update(self, prev):
+        if self.walls['left'] == False:
+             self.left_line = 0
+             prev.right_line = 0
+        if self.walls['right'] == False:
+             self.rigth_line = 0
+             prev.left_line = 0
+        if self.walls['top'] == False:
+             self.top_line = 0
+             prev.bottom_line = 0
+        if self.walls['bottom'] == False:
+             self.bottom_line = 0
+             prev.top_line = 0
+
+        pass
+        
 
     def set_current(self, bool):
         if bool:
@@ -186,6 +192,8 @@ running = True
 
 
 current_cell = rectangles[current_cell_index]
+stack.append(current_cell)
+stack.append(current_cell)
 # def back_track():
 #     for i in range(len(stack)):
 #         last = stack.pop()
@@ -198,12 +206,14 @@ current_cell = rectangles[current_cell_index]
 #                 current_cell = last
 #                 stack.append(last)
 def back_track():
-    global current_cell_index, current_cell
-    # print ('current was '+ str(current_cell.index))
+    global current_cell_index, current_cell, backtracking
     print('length is ' + str(len(stack)))
     current_cell = stack.pop()
     current_cell_index = current_cell.index
     print(str(current_cell_index))
+    if rectangles[move_left(current_cell_index)].visited == False or  rectangles[move_top(current_cell_index)].visited == False or  rectangles[move_bottom(current_cell_index)].visited ==False or  rectangles[move_right(current_cell_index)].visited == False:
+        backtracking = False
+
 
 
 # def next_rectangle():
@@ -255,19 +265,31 @@ while running:
     # RENDERING
     # stack.append(current_cell)
     current_cell.set_current(False)
-    list = [move_left(current_cell_index), move_top(current_cell_index), move_bottom(current_cell_index), move_right(current_cell_index)]
+    list = [ move_top(current_cell_index), move_left(current_cell_index), move_right(current_cell_index), move_bottom(current_cell_index)]
 
     while True:
         if len(list) == 0:
+            backtracking = True
             back_track()
             break
-        
+        prev = current_cell_index
         current_cell_index = random.choice(list)
         
         # remember that the functions return the intial value if the array is out of index
         if  rectangles[current_cell_index].visited :
             list.remove(current_cell_index)
         elif rectangles[current_cell_index].visited == False:
+            i = list.index(current_cell_index)
+            if i == 0:
+                stack[len(stack)-1].walls = {'top':False, 'left': True, 'right': True, 'bottom':True}
+            elif i == 1:
+                 stack[len(stack)-1].walls = {'top':True, 'left': False, 'right': True, 'bottom':True}
+            elif i == 2:
+                stack[len(stack)-1].walls = {'top':True, 'left': True, 'right': False, 'bottom':True}
+            elif i == 3:
+                stack[len(stack)-1].walls = {'top':True, 'left': True, 'right': True, 'bottom':False}
+
+            stack[len(stack)-1].update(stack[len(stack)-2])
             break
         
 
@@ -278,8 +300,13 @@ while running:
     # current_cell.set_current(False)
     prev = current_cell
 
+
+
     current_cell = rectangles[current_cell_index]
-    stack.append(current_cell)
+
+    if not backtracking:
+    
+        stack.append(current_cell)
     # if current_cell_index in list:
 
         # current_cell.update(list.index(current_cell_index), prev)
@@ -337,6 +364,6 @@ while running:
     # flip() the display to put your work on screen
     pygame.display.flip()
 
-    clock.tick(6)  # limits FPS to 60
+    clock.tick(2)  # limits FPS to 60
 
 pygame.quit()
