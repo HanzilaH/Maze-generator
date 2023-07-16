@@ -1,6 +1,13 @@
 import pygame
 import random
 
+# info: This program uses the depth first algorithm to generate mazes
+# the surrounding blocks are checked if they are unvisited
+# then a movement is made in that direction and the walls are removed
+# if all the surrounding blocks are already visited then the rectangle backtracks 
+# after generating the maze the rectangle always moves to the initial position
+# the class Rect is used to represent each of the block of rectangle using it found surrounding lines
+# pygame Rectangles dont allow me to uses custom border length for a rectangle thats why the class Rect is necessary
 
 
 # program variables
@@ -18,7 +25,7 @@ matrix_size = RECT_NUM_VER * RECT_NUM_HOR
 
 
 
-# this array is all of the rectangles
+# this array is for all of the rectangles
 rectangles = []
 # this array is to keep track of the visited rectangles
 stack = []
@@ -33,37 +40,6 @@ backtracking = False
 # this is used for the main loop
 running = True
 
-
-
-
-
-# functions for going in each direction
-# All four of these function return the same index if its out of range
-# Each return the 1D array INDEX for the next rectangle
-def move_top(current_pos):
-    
-    if current_pos - RECT_NUM_HOR >= 0:
-        return current_pos - RECT_NUM_HOR
-    else:
-        return current_pos
-def move_bottom(current_pos):
-    
-    if current_pos + RECT_NUM_HOR < matrix_size:
-        return current_pos + RECT_NUM_HOR
-    else:
-        return current_pos
-def move_left(current_pos):
-    
-    if current_pos % RECT_NUM_HOR != 0:
-        return current_pos - 1
-    else:
-        return current_pos
-def move_right(current_pos):
-    
-    if (current_pos + 1) % RECT_NUM_HOR != 0:
-        return current_pos + 1
-    else:
-        return current_pos
 
 
 
@@ -130,6 +106,38 @@ class Rect:
 
 
 
+# functions for going in each direction
+# All four of these function return the same index if its out of range
+# Each return the 1D array INDEX for the next rectangle
+def move_top(current_pos):
+    
+    if current_pos - RECT_NUM_HOR >= 0:
+        return current_pos - RECT_NUM_HOR
+    else:
+        return current_pos
+def move_bottom(current_pos):
+    
+    if current_pos + RECT_NUM_HOR < matrix_size:
+        return current_pos + RECT_NUM_HOR
+    else:
+        return current_pos
+def move_left(current_pos):
+    
+    if current_pos % RECT_NUM_HOR != 0:
+        return current_pos - 1
+    else:
+        return current_pos
+def move_right(current_pos):
+    
+    if (current_pos + 1) % RECT_NUM_HOR != 0:
+        return current_pos + 1
+    else:
+        return current_pos
+
+
+
+
+
 # starting coordinates
 x, y = 0, 0
 # intial setup 
@@ -178,7 +186,7 @@ current_rect = rectangles[current_rect_index]
 
 def back_track():
     '''Use the last entry of the stack to set the current rectangle
-    This function also perform a mini check to see if any one of the sides of the current rectangle is unvisited
+    This function also performs a mini check to see if any one of the sides of the current rectangle is unvisited
     Consequently it sets the value of backtracking boolean to false'''
     global current_rect_index, current_rect, backtracking
 
@@ -201,7 +209,7 @@ def remove_walls(current, next):
     '''Simple mathematics to calculate the difference in x and y values
     Then difference is used to determine this walls from each rectangle to remove'''
 
-    # i was making a major blunder by reversing the subtractions 
+    # I was making a major blunder by reversing the subtractions 
     x_diff = next.x_coord - current.x_coord
     y_diff = next.y_coord - current.y_coord
     
@@ -241,7 +249,7 @@ while running:
 
     # RENDERING
 
-    # at the start of each loop i am reset the current rectangle
+    # at the start of each loop current rectangle is reset
     current_rect.set_current(False)
 
 
@@ -251,9 +259,9 @@ while running:
     
     # this loop runs for 4 times at most for each of the options on the list
     # first chooses a random direction then checks whether that was been visited if yes then the index is removed from the list
-    # if all the four direction are visited then it does backtracking (one rectangle per loop)
+    # if all the four direction are visited then it does backtracking (one rectangle per main loop)
     # NOTE: initially i struggled to understand how backtracking worked with the frames
-    # but then what i did is we only backtrack one square for each Main loop and this loop is repeated in that main loop for 4 times
+    # but then what i did is we only backtrack one square for each Main loop
     while True:
         if len(li) == 0:
             backtracking = True
@@ -292,7 +300,7 @@ while running:
     
 
     
-    # Draw the rectangles
+    # Drawing the rectangles
     for rectangle in rectangles:
         rectangle.draw(screen)
     
