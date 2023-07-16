@@ -7,6 +7,7 @@ import random
 SCREEN_WIDTH =800
 SCREEN_HEIGHT = 800
 
+# you can edit these variables to produce a maze of any number of rectangles
 RECT_WIDTH = 50
 RECT_HEIGHT = 50
 
@@ -14,36 +15,31 @@ RECT_NUM_HOR = int(SCREEN_WIDTH/RECT_WIDTH)
 RECT_NUM_VER = int(SCREEN_HEIGHT/RECT_HEIGHT)
 matrix_size = RECT_NUM_VER * RECT_NUM_HOR
 
-print(RECT_NUM_HOR, RECT_NUM_VER)
 
+
+
+# this array is all of the rectangles
 rectangles = []
+# this array is to keep track of the visited rectangles
 stack = []
-current_cell = None
-current_cell_index = 8+8*16
-prev = 0
+
+
+current_rect = None
+# you can reset the current index to change the initial position of the algorithm
+current_rect_index = 0
+
 
 backtracking = False
+# this is used for the main loop
+running = True
 
 
-dir = -1
 
-
-def increase_color_gradient(color, increment):
-    """
-    Increases the color gradient of a given color.
-
-    Args:
-        color (pygame.Color): The color to increase the gradient.
-        increment (int): The amount to increment each color component.
-
-    Returns:
-        pygame.Color: The updated color with increased gradient.
-    """
-    new_color = pygame.Color(color.r + increment, color.g + increment, color.b + increment)
-    return new_color
 
 
 # functions for going in each direction
+# All four of these function return the same index if its out of range
+# Each return the 1D array INDEX for the next rectangle
 def move_top(current_pos):
     
     if current_pos - RECT_NUM_HOR >= 0:
@@ -75,8 +71,9 @@ def move_right(current_pos):
 
 
 
-# Cell class 
-class Cell:
+# rect class 
+class Rect:
+    '''Class for each of the rectangle block displayed on screen including the four lines surrounding the rectangles'''
 
     def __init__(self, x:int, y:int, i):
 
@@ -84,67 +81,51 @@ class Cell:
         self.visited = False
         self.x_coord = x
         self.y_coord = y
-        self.color = 'yellow'
+        self.color = 'darkgreen'
         self.index = i
-        self.left_line = 5
-        self.rigth_line = 5
-        self.top_line = 5
-        self.bottom_line = 5
 
-        
-
-        # For top line
-        # self.top = pygame.Line(x, y, x+RECT_WIDTH, y)
-        # # for left line
-        # self.left = pygame.Line(x, y, x, y+RECT_HEIGHT)
-        # # for bottom line
-        # self.bottom = pygame.Line(x, y+RECT_HEIGHT, x+RECT_WIDTH, y+RECT_HEIGHT)
-        # # for right line
-        # self.right = pygame.Line(x+RECT_WIDTH, y, x+RECT_WIDTH, y+RECT_HEIGHT)
+        # These are the length of each of the four lines
+        # Not much used
+        self.left_line = 1
+        self.rigth_line = 1
+        self.top_line = 1
+        self.bottom_line = 1
 
         # for the rectangle between the lines
         self.rectangle = pygame.Rect(x, y, x+RECT_WIDTH, y+RECT_HEIGHT )
 
 
     def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rectangle, border_radius=10)
-        pygame.draw.line(screen, 'lightblue',( self.x_coord, self.y_coord),( self.x_coord+RECT_WIDTH, self.y_coord), self.top_line)
-        pygame.draw.line(screen, 'lightblue',( self.x_coord, self.y_coord),( self.x_coord, self.y_coord+RECT_WIDTH), self.left_line)
-        pygame.draw.line(screen, 'lightblue',( self.x_coord, self.y_coord+RECT_WIDTH),( self.x_coord+RECT_WIDTH, self.y_coord+RECT_WIDTH), self.bottom_line)
-        pygame.draw.line(screen, 'lightblue',( self.x_coord+RECT_WIDTH, self.y_coord),( self.x_coord+RECT_WIDTH, self.y_coord+RECT_WIDTH), self.rigth_line)
+        '''Draws the main rectangle and draws all the four walls depending on the value of booleans'''
+        pygame.draw.rect(screen, self.color, self.rectangle)
+        # For top line
+        if self.walls['top'] == True:
+            pygame.draw.line(screen, 'black',( self.x_coord, self.y_coord),( self.x_coord+RECT_WIDTH, self.y_coord), self.top_line)
+         # # for left line
+        if self.walls['left'] == True:
+            pygame.draw.line(screen, 'black',( self.x_coord, self.y_coord),( self.x_coord, self.y_coord+RECT_WIDTH), self.left_line)
+         # # for bottom line
+        if self.walls['bottom']== True:
+            pygame.draw.line(screen, 'black',( self.x_coord, self.y_coord+RECT_WIDTH),( self.x_coord+RECT_WIDTH, self.y_coord+RECT_WIDTH), self.bottom_line)
+         # # for right line
+        if self.walls['right'] == True:
+            pygame.draw.line(screen, 'black',( self.x_coord+RECT_WIDTH, self.y_coord),( self.x_coord+RECT_WIDTH, self.y_coord+RECT_WIDTH), self.rigth_line)
 
 
-    def update(self, prev):
-        if self.walls['left'] == False:
-             self.left_line = 0
-             prev.right_line = 0
-        if self.walls['right'] == False:
-             self.rigth_line = 0
-             prev.left_line = 0
-        if self.walls['top'] == False:
-             self.top_line = 0
-             prev.bottom_line = 0
-        if self.walls['bottom'] == False:
-             self.bottom_line = 0
-             prev.top_line = 0
-
-        pass
         
 
     def set_current(self, bool):
+        '''Use this function to reset colors for the current rectangle and the other rectangles'''
         if bool:
             self.color = 'red'
         else:
-            self.color = 'purple'
+            self.color = 'lightgreen'
 
 
         self.visited = True
 
-
-
-
-
     def __str__(self):
+        '''return the string with the coordinates of the rectangle'''
         return "Coordinates: "+ str(self.x_coord)+ ', ' + str(self.y_coord)
 
 
@@ -152,13 +133,14 @@ class Cell:
 # starting coordinates
 x, y = 0, 0
 # intial setup 
+# adds the rectangle classes to the array
 for i in range(RECT_NUM_VER):
 
     for j in range(RECT_NUM_HOR):
         
-        cell = Cell(x, y, j + i*RECT_NUM_HOR)
-        print(cell)
-        rectangles.append(cell)
+        rect = Rect(x, y, j + i*RECT_NUM_HOR)
+        # print(rect)
+        rectangles.append(rect)
         x += RECT_WIDTH
     y += RECT_HEIGHT
     x = 0
@@ -186,55 +168,56 @@ for i in range(RECT_NUM_VER):
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
-running = True
 
 
 
 
-current_cell = rectangles[current_cell_index]
-stack.append(current_cell)
-stack.append(current_cell)
-# def back_track():
-#     for i in range(len(stack)):
-#         last = stack.pop()
-#         list = [move_left(last.index), move_top(last.index), move_bottom(last.index), move_right(last.index)]
-#         for dir in list:
-#             if rectangles(dir).visited:
-#                 continue
-#             else:
-#                 current_cell_index = last.index
-#                 current_cell = last
-#                 stack.append(last)
+
+current_rect = rectangles[current_rect_index]
+
+
 def back_track():
-    global current_cell_index, current_cell, backtracking
-    print('length is ' + str(len(stack)))
-    current_cell = stack.pop()
-    current_cell_index = current_cell.index
-    print(str(current_cell_index))
-    if rectangles[move_left(current_cell_index)].visited == False or  rectangles[move_top(current_cell_index)].visited == False or  rectangles[move_bottom(current_cell_index)].visited ==False or  rectangles[move_right(current_cell_index)].visited == False:
+    '''Use the last entry of the stack to set the current rectangle
+    This function also perform a mini check to see if any one of the sides of the current rectangle is unvisited
+    Consequently it sets the value of backtracking boolean to false'''
+    global current_rect_index, current_rect, backtracking
+
+
+
+    # this if condition is only here to prevent the window from closing in the end
+    if len(stack)> 0:
+        current_rect = stack.pop()
+
+
+
+    current_rect_index = current_rect.index
+
+    if rectangles[move_left(current_rect_index)].visited == False or  rectangles[move_top(current_rect_index)].visited == False or  rectangles[move_bottom(current_rect_index)].visited ==False or  rectangles[move_right(current_rect_index)].visited == False:
         backtracking = False
 
 
 
-# def next_rectangle():
-#     bool = True
-#     initial_value = current_cell_index
-#     list = [move_left(current_cell_index), move_top(current_cell_index), move_bottom(current_cell_index), move_right(current_cell_index)]
-#     for x in range(4):
-#         if len(list) == 0:
-#             back_track()
-        
-#         dir = random.choice(list)
-#         # remember that the functions return the intial value if the array is out of index
-#         if  rectangles[dir].visited :
-#             bool = True
-#             # list.remove(dir)
-#         else:
+def remove_walls(current, next):
+    '''Simple mathematics to calculate the difference in x and y values
+    Then difference is used to determine this walls from each rectangle to remove'''
 
-#             bool = False
-#             return dir
-        
-#     return 0
+    # i was making a major blunder by reversing the subtractions 
+    x_diff = next.x_coord - current.x_coord
+    y_diff = next.y_coord - current.y_coord
+    
+    if x_diff == RECT_WIDTH:  # Moving to the right
+        current.walls['right'] = False
+        next.walls['left'] = False
+    elif x_diff == -RECT_WIDTH:  # Moving to the left
+        current.walls['left'] = False
+        next.walls['right'] = False
+    elif y_diff == RECT_HEIGHT:  # Moving downwards
+        current.walls['bottom'] = False
+        next.walls['top'] = False
+    elif y_diff == -RECT_HEIGHT:  # Moving upwards
+        current.walls['top'] = False
+        next.walls['bottom'] = False
+
 
 
 
@@ -242,91 +225,77 @@ def back_track():
 
 
 while running:
-    # poll for events
-    # pygame.QUIT 
-    
+    # for the quit button
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # Update the rectangles
-    # for rectangle in rectangles:
-    #     rectangle.update(dir)
-
-    # Clear the screen
+    
+    
+    # to clear the screen after every frame
     screen.fill((0, 0, 0))
 
-    # Draw the rectangles
-    for rectangle in rectangles:
-        rectangle.draw(screen)
+    
 
 
 
     # RENDERING
-    # stack.append(current_cell)
-    current_cell.set_current(False)
-    list = [ move_top(current_cell_index), move_left(current_cell_index), move_right(current_cell_index), move_bottom(current_cell_index)]
 
+    # at the start of each loop i am reset the current rectangle
+    current_rect.set_current(False)
+
+
+
+    # remember that the functions return the intial value if the array is out of index
+    li = [ move_top(current_rect_index), move_left(current_rect_index), move_right(current_rect_index), move_bottom(current_rect_index)]
+    
+    # this loop runs for 4 times at most for each of the options on the list
+    # first chooses a random direction then checks whether that was been visited if yes then the index is removed from the list
+    # if all the four direction are visited then it does backtracking (one rectangle per loop)
+    # NOTE: initially i struggled to understand how backtracking worked with the frames
+    # but then what i did is we only backtrack one square for each Main loop and this loop is repeated in that main loop for 4 times
     while True:
-        if len(list) == 0:
+        if len(li) == 0:
             backtracking = True
             back_track()
             break
-        prev = current_cell_index
-        current_cell_index = random.choice(list)
+       
+        current_rect_index = random.choice(li)
         
-        # remember that the functions return the intial value if the array is out of index
-        if  rectangles[current_cell_index].visited :
-            list.remove(current_cell_index)
-        elif rectangles[current_cell_index].visited == False:
-            i = list.index(current_cell_index)
-            if i == 0:
-                stack[len(stack)-1].walls = {'top':False, 'left': True, 'right': True, 'bottom':True}
-            elif i == 1:
-                 stack[len(stack)-1].walls = {'top':True, 'left': False, 'right': True, 'bottom':True}
-            elif i == 2:
-                stack[len(stack)-1].walls = {'top':True, 'left': True, 'right': False, 'bottom':True}
-            elif i == 3:
-                stack[len(stack)-1].walls = {'top':True, 'left': True, 'right': True, 'bottom':False}
-
-            stack[len(stack)-1].update(stack[len(stack)-2])
+        
+        if  rectangles[current_rect_index].visited :
+            li.remove(current_rect_index)
+        elif rectangles[current_rect_index].visited == False:
             break
-        
 
 
     
-    # current_cell_index = next_rectangle()
-
-    # current_cell.set_current(False)
-    prev = current_cell
+    
 
 
+    # to set a ref to next rectangle which can be used later
+    next_rect = rectangles[current_rect_index]
+    # to remove the walls between the next and the current rectangle
+    remove_walls(current_rect, next_rect)
+    current_rect = next_rect
 
-    current_cell = rectangles[current_cell_index]
 
+    # print('current i: '+ str(current_rect.index)+ ' next i '+ str(next_rect.index))
+
+
+    # each current rectangle is only added to the stack if we are not backtracking
     if not backtracking:
-    
-        stack.append(current_cell)
-    # if current_cell_index in list:
+        stack.append(current_rect)
 
-        # current_cell.update(list.index(current_cell_index), prev)
-    current_cell.set_current(True)
-    
+
+    current_rect.set_current(True)
     
 
-    # dir = random.choice(['left', 'right', 'top', 'bottom'])
-    # if (dir=='left'):
-    #     current_cell_index = move_left(current_cell_index)
-
-    # elif(dir=='right'):
-    #     current_cell_index = move_right(current_cell_index)
-    # elif(dir=='top'):
-    #     current_cell_index = move_top(current_cell_index)
-    # else:
-    #     current_cell_index = move_bottom(current_cell_index)
     
-    # current_cell = rectangles[current_cell_index]
-    # current_cell.
+    # Draw the rectangles
+    for rectangle in rectangles:
+        rectangle.draw(screen)
+    
 
 
 
@@ -345,25 +314,8 @@ while running:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # flip() the display to put your work on screen
     pygame.display.flip()
 
-    clock.tick(2)  # limits FPS to 60
+    clock.tick(40)  # limits FPS
 
 pygame.quit()
