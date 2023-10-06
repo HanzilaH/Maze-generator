@@ -24,6 +24,10 @@ matrix_size = RECT_NUM_VER * RECT_NUM_HOR
 
 
 
+# frames per second
+frames_per_second = 40
+
+
 
 # this array is for all of the rectangles
 rectangles = []
@@ -324,6 +328,6 @@ while running:
 
     pygame.display.flip()
 
-    clock.tick(40)  # limits FPS
+    clock.tick(frames_per_second)  # limits FPS
 
 pygame.quit()
